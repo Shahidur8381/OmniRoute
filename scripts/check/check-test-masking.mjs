@@ -319,6 +319,20 @@ export function partitionDeletedRenamed(nameStatusOutput) {
  * Os campos de skip e extTaut são opcionais (default 0) para compatibilidade
  * com chamadas legadas que só passam baseAsserts/headAsserts/baseTaut/headTaut.
  */
+/**
+ * (#6634) `check-test-masking.test.ts` legitimately embeds tautology-pattern string
+ * literals (`assert.ok(true)`, `expect(true).toBe(true)`, `assert.equal(1,1)`) as
+ * FIXTURES to exercise `countBareTautologies()`/`scanBareTautologies()` (#6404). The
+ * diff-based tautology counters (`countTautologies()`/`countExtendedTautologies()`)
+ * are dumb regex scans of raw source text with no awareness that a literal sits
+ * inside a fixture string rather than real assertion code, so any new fixture line
+ * self-trips a HARD "new tautology" flag on the gate's own regression-test file.
+ * Mirrors the exclusion `scanBareTautologies()` already applies for the same reason.
+ */
+function isSelfTestFixtureFile(file) {
+  return file.endsWith("check-test-masking.test.ts");
+}
+
 export function evaluateMasking(perFile, assertReductionAllowlist = new Set()) {
   const flags = [];
   for (const f of perFile) {
@@ -326,6 +340,7 @@ export function evaluateMasking(perFile, assertReductionAllowlist = new Set()) {
     const headSkips = f.headSkips ?? 0;
     const baseExtTaut = f.baseExtTaut ?? 0;
     const headExtTaut = f.headExtTaut ?? 0;
+    const isSelfTestFixture = isSelfTestFixtureFile(f.file);
 
     // The net-assert-REDUCTION signal can be allowlisted per file when the reduction is a
     // verified-legitimate refactor/field-removal (config/quality/test-masking-allowlist.json).
@@ -334,13 +349,13 @@ export function evaluateMasking(perFile, assertReductionAllowlist = new Set()) {
       flags.push(
         `${f.file}: asserts ${f.baseAsserts} → ${f.headAsserts} (REMOÇÃO de ${f.baseAsserts - f.headAsserts} — enfraquecimento?)`
       );
-    if (f.headTaut > f.baseTaut)
+    if (!isSelfTestFixture && f.headTaut > f.baseTaut)
       flags.push(`${f.file}: nova(s) ${f.headTaut - f.baseTaut} tautologia(s) assert.ok(true)`);
     if (headSkips > baseSkips)
       flags.push(
         `${f.file}: ${headSkips - baseSkips} novo(s) .skip/.todo/.only (asserts silenciados sem remoção)`
       );
-    if (headExtTaut > baseExtTaut)
+    if (!isSelfTestFixture && headExtTaut > baseExtTaut)
       flags.push(
         `${f.file}: nova(s) ${headExtTaut - baseExtTaut} tautologia(s) estendida(s) (expect(true).toBe(true) / assert.equal(1,1))`
       );
