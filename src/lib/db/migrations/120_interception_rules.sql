@@ -1,4 +1,4 @@
--- 119_interception_rules.sql
+-- 120_interception_rules.sql
 -- Documents the interception_rules namespace in the key_value table (#3384).
 -- No schema change — the key_value table already exists.
 -- Key = provider ID, value = JSON with shape:
