@@ -54,7 +54,7 @@ describe("#6343: v0-vercel-web credential detection (alias collision)", () => {
     });
     const creds = await getProviderCredentials("v0-vercel-web", null, null, "v0-fable-5");
     assert.ok(creds);
-    assert.equal((creds as any).connectionId, conn.id);
+    assert.equal((creds as { connectionId?: string }).connectionId, conn.id);
   });
 
   it("dashboard 'Test Model' fullModel (built from provider ALIAS) resolves back to v0-vercel-web and finds the real credential", async () => {
@@ -82,8 +82,8 @@ describe("#6343: v0-vercel-web credential detection (alias collision)", () => {
     // out of scope for #6343 and are not asserted here.
     const { AI_PROVIDERS } = await import("../../src/shared/constants/providers.ts");
     const idsWithV0Alias = Object.values(AI_PROVIDERS)
-      .filter((p: any) => p.alias === "v0")
-      .map((p: any) => p.id)
+      .filter((p: { alias?: string; id: string }) => p.alias === "v0")
+      .map((p: { alias?: string; id: string }) => p.id)
       .sort();
     assert.deepEqual(idsWithV0Alias, ["v0-vercel"]);
   });
